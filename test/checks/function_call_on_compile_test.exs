@@ -22,6 +22,26 @@ defmodule CredoCompilex.Checks.FunctionCallOnCompileTest do
     |> to_source_file()
     |> run_check(Check)
     |> assert_issue()
+
+    """
+    defmodule Module do
+      @test_attribute OtherModule.call(500, "args")
+    end
+    """
+    |> to_source_file()
+    |> run_check(Check)
+    |> assert_issue()
+  end
+
+  test "Can find calls inside common data structures" do
+    """
+    defmodule Module do
+      @test_attribute [OtherModule.call(500, "args"), OtherModule.fun()]
+    end
+    """
+    |> to_source_file()
+    |> run_check(Check)
+    |> assert_issue()
   end
 
   test "Clean modules are OK" do
