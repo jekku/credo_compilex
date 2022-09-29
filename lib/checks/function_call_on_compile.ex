@@ -7,11 +7,16 @@ defmodule CredoCompilex.Checks.FunctionCallOnCompile do
     Credo.Code.prewalk(source_file, &traverse(&1, &2, issue_meta))
   end
 
-  defp traverse({:@, _, [{attribute_name, meta, attribute_value}]} = ast, issues, issue_meta) do
-    if function_call?(attribute_value) do
-      {ast, issues ++ [issue_for(attribute_name, meta[:line], issue_meta)]}
-    else
-      {ast, issues}
+  defp traverse({:@, _, [{attribute_name, meta, [attribute_value]}]} = ast, issues, issue_meta) do
+    cond do
+      function_call?(attribute_value) ->
+        {ast, issues ++ [issue_for(attribute_name, meta[:line], issue_meta)]}
+
+      is_list(attribute_value) and Enum.find(attribute_value, &function_call?(&1)) ->
+        {ast, issues ++ [issue_for(attribute_name, meta[:line], issue_meta)]}
+
+      true ->
+        {ast, issues}
     end
   end
 
@@ -19,13 +24,13 @@ defmodule CredoCompilex.Checks.FunctionCallOnCompile do
     {ast, issues}
   end
 
-  defp function_call?([
+  defp function_call?(
          {{:., _,
            [
              _module,
              _function
            ]}, _, _}
-       ]),
+       ),
        do: true
 
   defp function_call?(_), do: false
